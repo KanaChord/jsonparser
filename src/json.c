@@ -11,9 +11,9 @@
 #include "../inc/lexer.h"
 #include "../inc/parser.h"
 
-struct strjsn * newJsn(char type)
+struct strjsn *newJsn(jsnType type)
 {
-    struct strjsn * obj = NULL;
+    struct strjsn *obj = NULL;
     obj = malloc(sizeof(struct strjsn));
     memset(obj, 0, sizeof(struct strjsn));
     obj->type = type;
@@ -42,6 +42,111 @@ void freeJsn(struct strjsn **objref)
         free(*objref);
         *objref = NULL;
     }
+}
+
+struct strjsn *jsnGet(struct strjsn *obj, char *key)
+{
+    struct strjsn *res = NULL;
+    if (obj != NULL && obj->type == OBJECT)
+    {
+        obj = obj->value.o;
+        while (obj != NULL)
+        {
+            if (strcmp(key, obj->key) == 0)
+            {
+                res = obj;
+                break;
+            }
+            obj = obj->next;
+        }
+    }
+
+    return res;
+}
+
+struct strjsn *jsnArrayGet(struct strjsn *arr, int index)
+{
+    int i = 0;
+    struct strjsn *res = NULL;
+    if (arr != NULL && arr->type == ARRAY)
+    {
+        arr = arr->value.o;
+        while (arr != NULL && i < index)
+        {
+            i++;
+            arr = arr->next;
+        }
+        res = arr;
+    }
+    return res;
+}
+
+void jsnPush(struct strjsn *arr, struct strjsn *elem)
+{
+    if (arr != NULL && arr->type == ARRAY)
+    {
+        if (arr->value.o != NULL)
+        {
+            arr = arr->value.o;
+            while (arr->next != NULL)
+                arr = arr->next;
+            arr->next = elem;
+        }
+        else
+            arr->value.o = elem;
+    }
+}
+
+struct strjsn *jsnPop(struct strjsn *arr)
+{
+    struct strjsn *res = NULL;
+    struct strjsn *prev = NULL;
+
+    if (arr != NULL && arr->type == ARRAY)
+    {
+        if (arr->value.o != NULL)
+        {
+            prev = arr;
+            arr = arr->value.o;
+            while (arr->next != NULL)
+            {
+                prev = arr;
+                arr = arr->next;
+            }
+            prev->next = NULL;
+            res = arr;
+        }
+        else
+        {
+            res = arr->value.o;
+            arr->value.o = NULL;
+        }
+    }
+    return res;
+}
+
+struct strjsn *jsnCpy(struct strjsn *obj, int deep)
+{
+    struct strjsn *res = NULL;
+    if (obj != NULL)
+    {
+        res = newJsn(obj->type);
+        if (obj->type == OBJECT || obj->type == ARRAY)
+            res->value.o = jsnCpy(obj->value.o, 1);
+        else if (obj->type == STRING)
+        {
+            res->value.s = malloc(strlen(obj->value) + 1);
+            memset(res->value.s, 0, strlen(obj->value) + 1);
+            memcpy(res->value.s, obj->value.s, strlen(obj->value.s));
+        }
+        else
+        {
+            res->value = obj->value;
+        }
+        if (deep == 1)
+            res->next = jsnCpy(obj->next);
+    }
+    return res;
 }
 
 long long jsnSize(struct strjsn *obj)

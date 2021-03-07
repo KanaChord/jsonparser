@@ -10,30 +10,24 @@
 
 int isIn(char c, char *s)
 {
-    while (*s != '\0')
-    {
-        if (c == *s)
-            return 1;
-        s++;
-    }
+    char *r = s;
+    if (s != NULL)
+        while (*s != '\0')
+        {
+            if (c == *s)
+                return (s - r + 1);
+            s++;
+        }
     return 0;
 }
 
-void append(struct tokenList **list, char type, char *value)
+void append(struct tokenList **list, tokenType type, char *value)
 {
     struct tokenList *token = malloc(sizeof(struct tokenList));
     struct tokenList *ref = *list;
 
     token->tokenType = type;
-    if (value != NULL)
-    {
-        token->value = malloc(strlen(value) + 1);
-        memcpy(token->value, value, strlen(value) + 1);
-    }
-    else
-    {
-        token->value = NULL;
-    }
+    token->value = value;
     token->next = NULL;
 
     if (*list != NULL)
@@ -66,108 +60,112 @@ void clearList(struct tokenList **reflist)
 
 void printList(struct tokenList *list)
 {
-    struct tokenList *token = list;
-    while (token != NULL)
+    char *a[] = {
+        "TT_INT",
+        "TT_FLOAT",
+        "TT_STRING",
+        "TT_CBO",
+        "TT_BO",
+        "TT_CBC",
+        "TT_BC",
+        "TT_COMA",
+        "TT_DD"};
+    while (list != NULL)
     {
-        printf("( '%c': '%s' ) ", token->tokenType, token->value);
-        token = token->next;
+        printf("( %s: '%s' ) ", a[list->tokenType], list->value);
+        list = list->next;
     }
 }
 
-int isFloat(char **str, char **value)
+#ifndef _POSIX_VERSION
+
+char *strndup(char *s, int size)
 {
+    char *c = malloc(size + 1);
+    memcpy(c, s, size);
+    c[size] = '\0';
+
+    return c;
+}
+
+#endif
+
+char *getIntFloat(char **str)
+{
+    char *value = NULL;
     char *ptr = *str;
     int dotCount = 0;
-    while (isIn(**str, "0123456789."))
+
+    while (isIn(**str, "0123456789.") && dotCount <= 1)
     {
         if (**str == '.')
-        {
-            if (isIn(*(*str + 1), "0123456789") == 0)
-            {
-                return 0;
-            }
-            if (dotCount == 0)
-                dotCount++;
-            else
-                break;
-        }
+            dotCount++;
         (*str)++;
     }
-    *value = malloc(*str - ptr + 1);
-    memset(*value, 0, *str - ptr + 1);
-    memcpy(*value, ptr, *str - ptr);
-    (*str)--;
-    return dotCount;
+
+    if (*(*str - 1) != '.')
+        value = strndup(ptr, *str - ptr);
+
+    return value;
 }
 
 char *extractString(char **str)
 {
-    char *ptr = (*str)++;
-    while (*(*str + 1) != '\"')
-        if (**str == '\0')
-            return NULL;
-        else
-            (*str)++;
+    char *value = NULL;
+    char *ptr = ++(*str);
+    while (**str != '\"' && **str != '\0')
+        (*str)++;
 
-    char *value = malloc(*str - ptr + 1);
-    memset(value, 0, *str - ptr + 1);
-    memcpy(value, ptr + 1, *str - ptr);
+    if (**str != '\0')
+        value = strndup(ptr, *str - ptr);
 
-    (*str)++;
     return value;
 }
 
 struct tokenList *lexer(char *str)
 {
-    // init list
     struct tokenList *list = NULL;
 
-    // iterate through list
     while (*str != '\0')
     {
         if (isIn(*str, " \t\n"))
-        { /*pass*/
-        }
+            /* pass */;
         else if (isIn(*str, "0123456789."))
         {
-            char *value = NULL;
-            int ret = isFloat(&str, &value);
-            if (value != NULL)
-            {
-                append(&list, ret ? TT_FLOAT : TT_INT, value);
-                free(value);
-            }
-            else
-            {
-                printf("Illegal character : .");
-                return NULL;
-            }
-        }
-        else if (isIn(*str, "{}[]:,"))
-        {
-            append(&list, *str, NULL);
+            char *value = getIntFloat(&str);
+            append(&list, isIn('.', value) ? TT_FLOAT : TT_INT, value);
         }
         else if (*str == '\"')
-        {
-            char *value = extractString(&str);
-            if (value != NULL)
-            {
-                append(&list, 's', value);
-                free(value);
-            }
-            else
-            {
-                printf("Non terminated string");
-                return NULL;
-            }
-        }
+            append(&list, TT_STRING, extractString(&str));
+        else if (isIn(*str, "{[}],:"))
+            append(&list, isIn(*str, "{[}],:") + 2, NULL);
         else
         {
-            printf("Invalid character : %c", *str);
-            return NULL;
+            clearList(&list);
+            break;
         }
+
         str++;
     }
 
     return list;
+}
+
+int main()
+{
+    char input[100] = "{\"hello\":\"world\"}";
+    struct tokenList *list = NULL;
+    char *string;
+
+    while (1)
+    {
+        printf("json> ");
+        fgets(input, 100, stdin);
+        list = lexer(input);
+        printList(list);
+        printf("\n");
+        memset(input, 0, 100);
+    }
+
+    return 0;
 }

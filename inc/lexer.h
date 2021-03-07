@@ -1,20 +1,21 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-// will i even use those ?
-#define TT_CBO '{'
-#define TT_CBC '}'
-#define TT_BO '['
-#define TT_BC ']'
-#define TT_INT 'i'    // /[0-9]+/
-#define TT_FLOAT 'f'  // /[0-9]*\.[0-9]+/
-#define TT_STRING 's' // /\".*\"/
-#define TT_COMA ','
-#define TT_DD ':'
+typedef enum {
+    TT_INT,     // /[0-9]+/
+    TT_FLOAT,   // /[0-9]*\.[0-9]+/
+    TT_STRING,  // /\".*\"/
+    TT_CBO,
+    TT_BO, 
+    TT_CBC, 
+    TT_BC, 
+    TT_COMA, 
+    TT_DD
+} tokenType;
 
 struct tokenList
 {
-    char tokenType;
+    tokenType tokenType;
     char *value;
     struct tokenList *next;
 };

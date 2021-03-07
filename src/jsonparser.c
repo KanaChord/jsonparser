@@ -97,27 +97,3 @@ struct strjsn *parser(struct tokenList **list)
 
     return obj;
 }
-
-int main()
-{
-    char input[100] = "{\"hello\n";
-    struct strjsn *obj = NULL;
-    char *string;
-
-    while (1)
-    {
-        printf("json> ");
-        fgets(input, 100, stdin);
-        if (strcmp(input, "exit\n") == 0)
-            break;
-        obj = jsntostr(input);
-        string = strtojsn(obj);
-        if (string != NULL)
-            printf("%s", string);
-        printf("\n");
-        memset(input, 0, 100);
-        freeJsn(&obj);
-    }
-
-    return 0;
-}
