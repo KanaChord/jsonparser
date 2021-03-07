@@ -128,23 +128,34 @@ struct tokenList *lexer(char *str)
 
     while (*str != '\0')
     {
+        char *value = NULL;
+        tokenType type = 0xFF;
+
         if (isIn(*str, " \t\n"))
             /* pass */;
-        else if (isIn(*str, "0123456789."))
-        {
-            char *value = getIntFloat(&str);
-            append(&list, isIn('.', value) ? TT_FLOAT : TT_INT, value);
-        }
-        else if (*str == '\"')
-            append(&list, TT_STRING, extractString(&str));
-        else if (isIn(*str, "{[}],:"))
-            append(&list, isIn(*str, "{[}],:") + 2, NULL);
         else
         {
-            clearList(&list);
-            break;
-        }
+            if (isIn(*str, "0123456789."))
+            {
+                char *value = getIntFloat(&str);
+                type = isIn('.', value) ? TT_FLOAT : TT_INT;
+            }
+            else if (*str == '\"')
+            {
+                type = TT_STRING;
+                value = extractString(&str);
+            }
+            else if (isIn(*str, "{[}],:"))
+                type = isIn(*str, "{[}],:") + 2;
 
+            if (type <= 2 && value == NULL || type == 0xFF)
+            {
+                clearList(&list);
+                break;
+            }
+
+            append(&list, type, value);
+        }
         str++;
     }
 
